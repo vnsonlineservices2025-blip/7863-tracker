@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>7863 Tracker — Online &amp; Offline Ledger</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface-muted: #f1f5f9;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --green: #70AD47;
+      --amber: #FFC000;
+      --blue: #00B0F0;
+      --profit: #15803d;
+      --loss: #dc2626;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .container-app { max-width: 1320px; margin: 0 auto; padding: 16px; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .btn:hover { background: var(--surface-muted); }
+    .btn-primary {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
+    }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-danger {
+      color: #dc2626;
+      border-color: #fecaca;
+      background: #fef2f2;
+    }
+    .btn-danger:hover { background: #fee2e2; }
+    .tab-btn {
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      transition: all 0.15s ease;
+    }
+    .tab-btn.active {
+      background: var(--accent);
+      color: #ffffff;
+    }
+    .table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      background: var(--surface);
+    }
+    th {
+      background: var(--surface-muted);
+      color: #334155;
+      font-weight: 600;
+      text-align: left;
+      padding: 10px 10px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+    }
+    tr:hover td { background: #f8fafc; }
+    .cell-input {
+      width: 76px;
+      padding: 5px 7px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 13px;
+      text-align: right;
+      background: #ffffff;
+      color: var(--text);
+      transition: border-color 0.15s;
+    }
+    .cell-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+    }
+    .cell-input-date {
+      width: 112px;
+      text-align: left;
+    }
+    .num-right { text-align: right; font-variant-numeric: tabular-nums; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .cat-pill {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .cat-7863 { background: #70AD47; color: #ffffff; }
+    .cat-0369 { background: #FFC000; color: #1e293b; }
+    .cat-MINUS_PLUS { background: #00B0F0; color: #ffffff; }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 50;
+    }
+    .modal-backdrop.open { display: flex; }
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+      transition: all 0.2s ease;
+      z-index: 60;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .hidden-view { display: none !important; }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .flex-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container-app">
+    <!-- Header -->
+    <header class="card p-4 mb-4">
+      <div class="flex-bar">
+        <div>
+          <div class="flex items-center gap-3 flex-wrap">
+            <h1 class="text-xl font-bold tracking-tight text-slate-900 m-0">7863 Tracker</h1>
+            <span id="netStatusBadge" class="badge bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <span id="netDot" style="width:8px;height:8px;border-radius:50%;background:#10b981;display:inline-block;"></span>
+              <span id="netText">Online</span>
+            </span>
+            <span id="saveStatusBadge" class="badge bg-slate-100 text-slate-600">Saved locally</span>
+          </div>
+          <p class="text-xs text-slate-500 mt-1 mb-0">Works both online and offline — all changes auto-save in your browser.</p>
+        </div>
+
+        <div class="flex items-center gap-2 flex-wrap">
+          <button id="exportCsvBtn" class="btn" type="button">Export CSV</button>
+          <button id="backupJsonBtn" class="btn" type="button">Backup JSON</button>
+          <label class="btn" style="cursor:pointer;">
+            Restore JSON
+            <input id="restoreJsonInput" type="file" accept=".json" style="display:none;" />
+          </label>
+          <button id="resetBtn" class="btn btn-danger" type="button">Reset</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- KPI Strip -->
+    <section class="kpi-grid">
+      <div class="card p-4">
+        <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Profit / Loss (N7)</div>
+        <div id="kpiNet" class="text-2xl font-bold mt-1 text-slate-900">0</div>
+      </div>
+      <div class="card p-4">
+        <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Investment (L)</div>
+        <div id="kpiInvest" class="text-2xl font-bold mt-1 text-slate-900">0</div>
+      </div>
+      <div class="card p-4">
+        <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Winnings (I + J)</div>
+        <div id="kpiWins" class="text-2xl font-bold mt-1 text-slate-900">0</div>
+      </div>
+      <div class="card p-4">
+        <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Active Summary / Data Rows</div>
+        <div id="kpiRows" class="text-2xl font-bold mt-1 text-slate-900">0 / 3</div>
+      </div>
+    </section>
+
+    <!-- Navigation Tabs -->
+    <div class="card p-2 mb-4 flex-bar">
+      <div class="flex items-center gap-2">
+        <button id="tabSummaryBtn" class="tab-btn active" type="button">Summary (7863)</button>
+        <button id="tabDataBtn" class="tab-btn" type="button">Data (Markets)</button>
+      </div>
+      <div id="summaryControls" class="flex items-center gap-3 flex-wrap pr-2">
+        <label class="text-xs font-medium text-slate-600 flex items-center gap-1.5">
+          Default A:
+          <input id="defaultAInput" type="number" class="cell-input" style="width:62px;" value="48" />
+        </label>
+        <label class="text-xs font-medium text-slate-600 flex items-center gap-1.5">
+          Default B:
+          <input id="defaultBInput" type="number" class="cell-input" style="width:62px;" value="36" />
+        </label>
+        <button id="applyDefaultsBtn" class="btn" type="button">Apply A/B to All</button>
+        <label class="text-xs font-medium text-slate-700 flex items-center gap-1.5 cursor-pointer">
+          <input id="includeWin150All" type="checkbox" checked />
+          Include Win 150 in rows 10–15
+        </label>
+      </div>
+      <div id="dataControls" class="flex items-center gap-2 flex-wrap pr-2 hidden-view">
+        <select id="categoryFilter" class="cell-input cell-input-date" style="width:140px;">
+          <option value="ALL">All Categories</option>
+          <option value="7863">7863 (Green)</option>
+          <option value="0369">0369 (Amber)</option>
+          <option value="MINUS_PLUS">MINUS PLUS (Blue)</option>
+        </select>
+        <input id="dateFilter" type="text" placeholder="Filter date..." class="cell-input cell-input-date" style="width:130px;" />
+        <button id="openAddDataModalBtn" class="btn btn-primary" type="button">+ Add Data Row</button>
+      </div>
+    </div>
+
+    <!-- SUMMARY VIEW -->
+    <section id="summaryView" class="card p-4">
+      <div class="flex-bar mb-3">
+        <div>
+          <h2 class="text-base font-bold text-slate-900 m-0">Summary Ledger (Rows 10–37)</h2>
+          <p class="text-xs text-slate-500 m-0">Enter values in <strong>Input (C)</strong>, <strong>Win 150 (I)</strong>, or <strong>Win 300 (J)</strong>. Single, Double, Investment, and Profit/Loss update automatically.</p>
+        </div>
+        <button id="addSummaryRowBtn" class="btn" type="button">+ Add Row</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Row</th>
+              <th class="num-right">A</th>
+              <th class="num-right">B</th>
+              <th class="num-right">Input (C)</th>
+              <th class="num-right">Single (D)</th>
+              <th class="num-right">Double (E)</th>
+              <th class="num-right">Win 150 (I)</th>
+              <th class="num-right">Win 300 (J)</th>
+              <th class="num-right">Investment (L)</th>
+              <th class="num-right">Profit / Loss (N)</th>
+            </tr>
+          </thead>
+          <tbody id="summaryTbody"></tbody>
+          <tfoot>
+            <tr style="background:#f1f5f9;font-weight:700;">
+              <td colspan="4">Totals</td>
+              <td id="footSingle" class="num-right">0</td>
+              <td id="footDouble" class="num-right">0</td>
+              <td id="footWin150" class="num-right">0</td>
+              <td id="footWin300" class="num-right">0</td>
+              <td id="footInvest" class="num-right">0</td>
+              <td id="footNet" class="num-right">0</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+
+    <!-- DATA VIEW -->
+    <section id="dataView" class="card p-4 hidden-view">
+      <div class="flex-bar mb-3">
+        <div class="flex items-center gap-2 flex-wrap">
+          <h2 class="text-base font-bold text-slate-900 m-0 mr-2">Market Data Sheet</h2>
+          <span class="cat-pill cat-7863">7863</span>
+          <span class="cat-pill cat-0369">0369</span>
+          <span class="cat-pill cat-MINUS_PLUS">MINUS PLUS</span>
+        </div>
+        <div class="text-xs text-slate-500">Click any cell to edit inline.</div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Date</th>
+              <th class="num-right">SRIDEVI</th>
+              <th class="num-right">TIME BAZAR</th>
+              <th class="num-right">MILAN DAY</th>
+              <th class="num-right">KALYAN</th>
+              <th class="num-right">SRIDEVI NIGHT</th>
+              <th class="num-right">MILAN NIGHT</th>
+              <th class="num-right">RAJADHANI NIGHT</th>
+              <th class="num-right">KALYAN NIGHT</th>
+              <th class="num-right">MAIN BAZAR</th>
+              <th class="num-right">Row Sum</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="dataTbody"></tbody>
+          <tfoot>
+            <tr style="background:#f1f5f9;font-weight:700;" id="dataFootRow"></tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- Add Data Row Modal -->
+  <div id="addDataModal" class="modal-backdrop">
+    <div class="card p-5" style="width:100%;max-width:560px;max-height:90vh;overflow-y:auto;">
+      <div class="flex-bar mb-4">
+        <h3 class="text-base font-bold m-0">Add Market Data Entry</h3>
+        <button id="closeAddDataModalBtn" class="btn" type="button">Close</button>
+      </div>
+      <form id="addDataForm">
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Category</label>
+            <select id="newDataCat" class="cell-input cell-input-date" style="width:100%;">
+              <option value="7863">7863 (Green)</option>
+              <option value="0369">0369 (Amber)</option>
+              <option value="MINUS_PLUS">MINUS PLUS (Blue)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Date</label>
+            <input id="newDataDate" type="text" class="cell-input cell-input-date" style="width:100%;" value="24.11.2026" required />
+          </div>
+        </div>
+        <div id="newMarketInputs" class="grid grid-cols-3 gap-2 mb-4"></div>
+        <div class="flex justify-end gap-2">
+          <button id="cancelAddDataBtn" class="btn" type="button">Cancel</button>
+          <button class="btn btn-primary" type="submit">Save Entry</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Reset Confirmation Modal -->
+  <div id="resetModal" class="modal-backdrop">
+    <div class="card p-5" style="width:100%;max-width:400px;">
+      <h3 class="text-base font-bold m-0 mb-2">Reset to Original 7863.xlsx?</h3>
+      <p class="text-sm text-slate-600 mb-4">This will clear your saved edits and restore the original workbook values.</p>
+      <div class="flex justify-end gap-2">
+        <button id="cancelResetBtn" class="btn" type="button">Cancel</button>
+        <button id="confirmResetBtn" class="btn btn-danger" type="button">Yes, Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const STORAGE_KEY = 'tracker_7863_v1';
+    const MARKETS = [
+      'SRIDEVI',
+      'TIME BAZAR',
+      'MILAN DAY',
+      'KALYAN',
+      'SRIDEVI NIGHT',
+      'MILAN NIGHT',
+      'RAJADHANI NIGHT',
+      'KALYAN NIGHT',
+      'MAIN BAZAR'
+    ];
+
+    function buildDefaultSummaryRows() {
+      const rows = [];
+      for (let r = 10; r <= 37; r++) {
+        rows.push({ rowNum: r, a: 48, b: 36, c: 0, win150: 0, win300: 0 });
+      }
+      return rows;
+    }
+
+    function buildDefaultState() {
+      return {
+        activeTab: 'summary',
+        defaultA: 48,
+        defaultB: 36,
+        includeWin150All: true,
+        summaryRows: buildDefaultSummaryRows(),
+        dataRows: [
+          {
+            id: 'd1',
+            category: '7863',
+            date: '24.11.2026',
+            values: [2, 0, 2, 1, 0, null, null, null, null]
+          },
+          {
+            id: 'd2',
+            category: '0369',
+            date: '24.11.2026',
+            values: [2, 0, 0, 2, 0, null, null, null, null]
+          },
+          {
+            id: 'd3',
+            category: 'MINUS_PLUS',
+            date: '24.11.2026',
+            values: [12, 1, 1, 0, 12, null, null, null, null]
+          }
+        ]
+      };
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return buildDefaultState();
+        const parsed = JSON.parse(raw);
+        if (!parsed || !Array.isArray(parsed.summaryRows) || !Array.isArray(parsed.dataRows)) {
+          return buildDefaultState();
+        }
+        return parsed;
+      } catch (e) {
+        return buildDefaultState();
+      }
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        const badge = document.getElementById('saveStatusBadge');
+        if (badge) badge.textContent = 'Saved locally • ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      } catch (e) {
+        const badge = document.getElementById('saveStatusBadge');
+        if (badge) badge.textContent = 'In-memory mode';
+      }
+    }
+
+    let state = loadState();
+    let toastTimer = null;
+
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+    }
+
+    function updateNetworkBadge() {
+      const online = navigator.onLine !== false;
+      const badge = document.getElementById('netStatusBadge');
+      const dot = document.getElementById('netDot');
+      const text = document.getElementById('netText');
+      if (online) {
+        badge.className = 'badge bg-emerald-50 text-emerald-700 border border-emerald-200';
+        dot.style.background = '#10b981';
+        text.textContent = 'Online';
+      } else {
+        badge.className = 'badge bg-amber-50 text-amber-800 border border-amber-200';
+        dot.style.background = '#f59e0b';
+        text.textContent = 'Offline (Local Mode)';
+      }
+    }
+
+    function computeRow(row) {
+      const a = Number(row.a) || 0;
+      const b = Number(row.b) || 0;
+      const c = Number(row.c) || 0;
+      const win150 = Number(row.win150) || 0;
+      const win300 = Number(row.win300) || 0;
+      const single = a * c;
+      const dbl = b * c;
+      const investment = single + dbl;
+      const useWin150 = state.includeWin150All || row.rowNum >= 16;
+      const profitLoss = (useWin150 ? win150 + win300 : win300) - investment;
+      return { single, dbl, investment, profitLoss, win150, win300 };
+    }
+
+    function fmtNum(n) {
+      if (Number.isInteger(n)) return n.toLocaleString();
+      return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+    }
+
+    function renderSummary() {
+      const tbody = document.getElementById('summaryTbody');
+      tbody.innerHTML = '';
+      let totSingle = 0, totDouble = 0, totW150 = 0, totW300 = 0, totInv = 0, totNet = 0, activeCount = 0;
+
+      state.summaryRows.forEach((row, idx) => {
+        const calc = computeRow(row);
+        totSingle += calc.single;
+        totDouble += calc.dbl;
+        totW150 += calc.win150;
+        totW300 += calc.win300;
+        totInv += calc.investment;
+        totNet += calc.profitLoss;
+        if ((Number(row.c) || 0) !== 0 || calc.win150 !== 0 || calc.win300 !== 0) activeCount++;
+
+        const tr = document.createElement('tr');
+        const netColor = calc.profitLoss > 0 ? 'color:#15803d;font-weight:700;' : (calc.profitLoss < 0 ? 'color:#dc2626;font-weight:700;' : 'color:#475569;');
+        tr.innerHTML = `
+          <td class="font-semibold text-slate-500">${row.rowNum}</td>
+          <td class="num-right"><input type="number" step="any" class="cell-input" data-idx="${idx}" data-field="a" value="${row.a}" /></td>
+          <td class="num-right"><input type="number" step="any" class="cell-input" data-idx="${idx}" data-field="b" value="${row.b}" /></td>
+          <td class="num-right"><input type="number" step="any" class="cell-input" data-idx="${idx}" data-field="c" value="${row.c}" /></td>
+          <td class="num-right font-medium">${fmtNum(calc.single)}</td>
+          <td class="num-right font-medium">${fmtNum(calc.dbl)}</td>
+          <td class="num-right"><input type="number" step="any" class="cell-input" data-idx="${idx}" data-field="win150" value="${row.win150}" /></td>
+          <td class="num-right"><input type="number" step="any" class="cell-input" data-idx="${idx}" data-field="win300" value="${row.win300}" /></td>
+          <td class="num-right font-semibold">${fmtNum(calc.investment)}</td>
+          <td class="num-right" style="${netColor}">${fmtNum(calc.profitLoss)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('footSingle').textContent = fmtNum(totSingle);
+      document.getElementById('footDouble').textContent = fmtNum(totDouble);
+      document.getElementById('footWin150').textContent = fmtNum(totW150);
+      document.getElementById('footWin300').textContent = fmtNum(totW300);
+      document.getElementById('footInvest').textContent = fmtNum(totInv);
+      const footNet = document.getElementById('footNet');
+      footNet.textContent = fmtNum(totNet);
+      footNet.style.color = totNet > 0 ? '#15803d' : (totNet < 0 ? '#dc2626' : '#0f172a');
+
+      const kpiNet = document.getElementById('kpiNet');
+      kpiNet.textContent = fmtNum(totNet);
+      kpiNet.style.color = totNet > 0 ? '#15803d' : (totNet < 0 ? '#dc2626' : '#0f172a');
+      document.getElementById('kpiInvest').textContent = fmtNum(totInv);
+      document.getElementById('kpiWins').textContent = fmtNum(totW150 + totW300);
+      document.getElementById('kpiRows').textContent = `${activeCount} / ${state.dataRows.length}`;
+    }
+
+    function getCategoryLabel(cat) {
+      if (cat === 'MINUS_PLUS') return 'MINUS PLUS';
+      return cat;
+    }
+
+    function renderData() {
+      const catFilter = document.getElementById('categoryFilter').value;
+      const dateQuery = document.getElementById('dateFilter').value.trim().toLowerCase();
+      const tbody = document.getElementById('dataTbody');
+      tbody.innerHTML = '';
+
+      const colTotals = new Array(MARKETS.length).fill(0);
+      let grandTotal = 0;
+
+      state.dataRows.forEach((row, idx) => {
+        if (catFilter !== 'ALL' && row.category !== catFilter) return;
+        if (dateQuery && !row.date.toLowerCase().includes(dateQuery)) return;
+
+        let rowSum = 0;
+        const marketCells = MARKETS.map((m, mIdx) => {
+          const val = row.values[mIdx];
+          const num = val === null || val === '' || val === undefined ? null : Number(val);
+          if (num !== null && !Number.isNaN(num)) {
+            rowSum += num;
+            colTotals[mIdx] += num;
+            grandTotal += num;
+          }
+          return `<td class="num-right"><input type="number" step="any" class="cell-input" style="width:64px;" data-didx="${idx}" data-midx="${mIdx}" value="${num === null ? '' : num}" placeholder="-" /></td>`;
+        }).join('');
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>
+            <select class="cat-pill cat-${row.category}" data-didx="${idx}" data-dfield="category" style="border:none;cursor:pointer;">
+              <option value="7863" ${row.category === '7863' ? 'selected' : ''}>7863</option>
+              <option value="0369" ${row.category === '0369' ? 'selected' : ''}>0369</option>
+              <option value="MINUS_PLUS" ${row.category === 'MINUS_PLUS' ? 'selected' : ''}>MINUS PLUS</option>
+            </select>
+          </td>
+          <td><input type="text" class="cell-input cell-input-date" data-didx="${idx}" data-dfield="date" value="${row.date}" /></td>
+          ${marketCells}
+          <td class="num-right font-bold text-slate-800">${fmtNum(rowSum)}</td>
+          <td><button type="button" class="btn btn-danger" style="padding:4px 8px;font-size:12px;" data-del-didx="${idx}">Del</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      const foot = document.getElementById('dataFootRow');
+      foot.innerHTML = `
+        <td colspan="2">Column Totals</td>
+        ${colTotals.map(t => `<td class="num-right">${fmtNum(t)}</td>`).join('')}
+        <td class="num-right">${fmtNum(grandTotal)}</td>
+        <td></td>
+      `;
+    }
+
+    function switchTab(tab) {
+      state.activeTab = tab;
+      const isSum = tab === 'summary';
+      document.getElementById('tabSummaryBtn').classList.toggle('active', isSum);
+      document.getElementById('tabDataBtn').classList.toggle('active', !isSum);
+      document.getElementById('summaryView').classList.toggle('hidden-view', !isSum);
+      document.getElementById('dataView').classList.toggle('hidden-view', isSum);
+      document.getElementById('summaryControls').classList.toggle('hidden-view', !isSum);
+      document.getElementById('dataControls').classList.toggle('hidden-view', isSum);
+      saveState();
+    }
+
+    function downloadFile(filename, content, mime) {
+      const blob = new Blob([content], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function exportCsv() {
+      if (state.activeTab === 'summary') {
+        const lines = ['Row,A,B,Input_C,Single_D,Double_E,Win_150,Win_300,Investment_L,Profit_Loss_N'];
+        state.summaryRows.forEach(r => {
+          const c = computeRow(r);
+          lines.push([r.rowNum, r.a, r.b, r.c, c.single, c.dbl, c.win150, c.win300, c.investment, c.profitLoss].join(','));
+        });
+        downloadFile('7863_summary.csv', lines.join('\n'), 'text/csv');
+        showToast('Exported 7863_summary.csv');
+      } else {
+        const lines = ['Category,Date,' + MARKETS.join(',')];
+        state.dataRows.forEach(r => {
+          const vals = r.values.map(v => (v === null || v === undefined ? '' : v));
+          lines.push([getCategoryLabel(r.category), r.date, ...vals].join(','));
+        });
+        downloadFile('7863_data.csv', lines.join('\n'), 'text/csv');
+        showToast('Exported 7863_data.csv');
+      }
+    }
+
+    // Build modal market inputs
+    function buildAddDataModalInputs() {
+      const wrap = document.getElementById('newMarketInputs');
+      wrap.innerHTML = MARKETS.map((m, i) => `
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">${m}</label>
+          <input type="number" step="any" data-new-midx="${i}" class="cell-input" style="width:100%;" placeholder="0" />
+        </div>
+      `).join('');
+    }
+
+    // Event Delegation & Listeners
+    document.getElementById('tabSummaryBtn').addEventListener('click', () => switchTab('summary'));
+    document.getElementById('tabDataBtn').addEventListener('click', () => switchTab('data'));
+
+    document.getElementById('summaryTbody').addEventListener('input', (e) => {
+      const t = e.target;
+      if (!t.dataset || t.dataset.idx === undefined) return;
+      const idx = Number(t.dataset.idx);
+      const field = t.dataset.field;
+      state.summaryRows[idx][field] = t.value === '' ? 0 : Number(t.value);
+      saveState();
+      // Update only calculated cells in that row + totals to preserve focus
+      const tr = t.closest('tr');
+      const calc = computeRow(state.summaryRows[idx]);
+      const tds = tr.querySelectorAll('td');
+      tds[4].textContent = fmtNum(calc.single);
+      tds[5].textContent = fmtNum(calc.dbl);
+      tds[8].textContent = fmtNum(calc.investment);
+      tds[9].textContent = fmtNum(calc.profitLoss);
+      tds[9].style.color = calc.profitLoss > 0 ? '#15803d' : (calc.profitLoss < 0 ? '#dc2626' : '#475569');
+      tds[9].style.fontWeight = calc.profitLoss !== 0 ? '700' : '400';
+      // Update totals
+      let totSingle = 0, totDouble = 0, totW150 = 0, totW300 = 0, totInv = 0, totNet = 0, activeCount = 0;
+      state.summaryRows.forEach(r => {
+        const c = computeRow(r);
+        totSingle += c.single; totDouble += c.dbl; totW150 += c.win150; totW300 += c.win300; totInv += c.investment; totNet += c.profitLoss;
+        if ((Number(r.c) || 0) !== 0 || c.win150 !== 0 || c.win300 !== 0) activeCount++;
+      });
+      document.getElementById('footSingle').textContent = fmtNum(totSingle);
+      document.getElementById('footDouble').textContent = fmtNum(totDouble);
+      document.getElementById('footWin150').textContent = fmtNum(totW150);
+      document.getElementById('footWin300').textContent = fmtNum(totW300);
+      document.getElementById('footInvest').textContent = fmtNum(totInv);
+      const footNet = document.getElementById('footNet');
+      footNet.textContent = fmtNum(totNet);
+      footNet.style.color = totNet > 0 ? '#15803d' : (totNet < 0 ? '#dc2626' : '#0f172a');
+      const kpiNet = document.getElementById('kpiNet');
+      kpiNet.textContent = fmtNum(totNet);
+      kpiNet.style.color = totNet > 0 ? '#15803d' : (totNet < 0 ? '#dc2626' : '#0f172a');
+      document.getElementById('kpiInvest').textContent = fmtNum(totInv);
+      document.getElementById('kpiWins').textContent = fmtNum(totW150 + totW300);
+      document.getElementById('kpiRows').textContent = `${activeCount} / ${state.dataRows.length}`;
+    });
+
+    document.getElementById('applyDefaultsBtn').addEventListener('click', () => {
+      const a = Number(document.getElementById('defaultAInput').value) || 0;
+      const b = Number(document.getElementById('defaultBInput').value) || 0;
+      state.defaultA = a;
+      state.defaultB = b;
+      state.summaryRows.forEach(r => { r.a = a; r.b = b; });
+      saveState();
+      renderSummary();
+      showToast(`Applied A=${a}, B=${b} to all rows`);
+    });
+
+    document.getElementById('includeWin150All').addEventListener('change', (e) => {
+      state.includeWin150All = e.target.checked;
+      saveState();
+      renderSummary();
+    });
+
+    document.getElementById('addSummaryRowBtn').addEventListener('click', () => {
+      const nextNum = state.summaryRows.length ? state.summaryRows[state.summaryRows.length - 1].rowNum + 1 : 10;
+      state.summaryRows.push({ rowNum: nextNum, a: state.defaultA, b: state.defaultB, c: 0, win150: 0, win300: 0 });
+      saveState();
+      renderSummary();
+      showToast(`Added Row ${nextNum}`);
+    });
+
+    document.getElementById('dataTbody').addEventListener('input', (e) => {
+      const t = e.target;
+      if (t.dataset.didx === undefined) return;
+      const idx = Number(t.dataset.didx);
+      if (t.dataset.midx !== undefined) {
+        const mIdx = Number(t.dataset.midx);
+        state.dataRows[idx].values[mIdx] = t.value === '' ? null : Number(t.value);
+        saveState();
+        renderData();
+      } else if (t.dataset.dfield === 'date') {
+        state.dataRows[idx].date = t.value;
+        saveState();
+      }
+    });
+
+    document.getElementById('dataTbody').addEventListener('change', (e) => {
+      const t = e.target;
+      if (t.dataset.didx !== undefined && t.dataset.dfield === 'category') {
+        const idx = Number(t.dataset.didx);
+        state.dataRows[idx].category = t.value;
+        saveState();
+        renderData();
+      }
+    });
+
+    document.getElementById('dataTbody').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-del-didx]');
+      if (!btn) return;
+      const idx = Number(btn.dataset.delDidx);
+      state.dataRows.splice(idx, 1);
+      saveState();
+      renderData();
+      renderSummary();
+      showToast('Deleted data row');
+    });
+
+    document.getElementById('categoryFilter').addEventListener('change', renderData);
+    document.getElementById('dateFilter').addEventListener('input', renderData);
+
+    // Modals
+    const addModal = document.getElementById('addDataModal');
+    document.getElementById('openAddDataModalBtn').addEventListener('click', () => {
+      buildAddDataModalInputs();
+      addModal.classList.add('open');
+    });
+    document.getElementById('closeAddDataModalBtn').addEventListener('click', () => addModal.classList.remove('open'));
+    document.getElementById('cancelAddDataBtn').addEventListener('click', () => addModal.classList.remove('open'));
+
+    document.getElementById('addDataForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const cat = document.getElementById('newDataCat').value;
+      const date = document.getElementById('newDataDate').value.trim() || '24.11.2026';
+      const vals = MARKETS.map((_, i) => {
+        const inp = document.querySelector(`[data-new-midx="${i}"]`);
+        return inp && inp.value !== '' ? Number(inp.value) : null;
+      });
+      state.dataRows.push({ id: 'd_' + Date.now(), category: cat, date, values: vals });
+      saveState();
+      renderData();
+      renderSummary();
+      addModal.classList.remove('open');
+      showToast('Added market entry');
+    });
+
+    const resetModal = document.getElementById('resetModal');
+    document.getElementById('resetBtn').addEventListener('click', () => resetModal.classList.add('open'));
+    document.getElementById('cancelResetBtn').addEventListener('click', () => resetModal.classList.remove('open'));
+    document.getElementById('confirmResetBtn').addEventListener('click', () => {
+      state = buildDefaultState();
+      saveState();
+      document.getElementById('defaultAInput').value = state.defaultA;
+      document.getElementById('defaultBInput').value = state.defaultB;
+      document.getElementById('includeWin150All').checked = state.includeWin150All;
+      renderSummary();
+      renderData();
+      switchTab(state.activeTab);
+      resetModal.classList.remove('open');
+      showToast('Restored original 7863.xlsx data');
+    });
+
+    document.getElementById('exportCsvBtn').addEventListener('click', exportCsv);
+    document.getElementById('backupJsonBtn').addEventListener('click', () => {
+      downloadFile('7863_backup.json', JSON.stringify(state, null, 2), 'application/json');
+      showToast('Downloaded JSON backup');
+    });
+
+    document.getElementById('restoreJsonInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const parsed = JSON.parse(ev.target.result);
+          if (!parsed || !Array.isArray(parsed.summaryRows) || !Array.isArray(parsed.dataRows)) {
+            showToast('Invalid backup file');
+            return;
+          }
+          state = parsed;
+          saveState();
+          document.getElementById('defaultAInput').value = state.defaultA || 48;
+          document.getElementById('defaultBInput').value = state.defaultB || 36;
+          document.getElementById('includeWin150All').checked = state.includeWin150All !== false;
+          renderSummary();
+          renderData();
+          switchTab(state.activeTab || 'summary');
+          showToast('Restored from backup');
+        } catch (err) {
+          showToast('Could not parse JSON file');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+
+    window.addEventListener('online', updateNetworkBadge);
+    window.addEventListener('offline', updateNetworkBadge);
+
+    // Init
+    document.getElementById('defaultAInput').value = state.defaultA;
+    document.getElementById('defaultBInput').value = state.defaultB;
+    document.getElementById('includeWin150All').checked = state.includeWin150All;
+    updateNetworkBadge();
+    renderSummary();
+    renderData();
+    switchTab(state.activeTab || 'summary');
+  </script>
+</body>
+</html>
